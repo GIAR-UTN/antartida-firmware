@@ -1,0 +1,12 @@
+menu "SiGGECA remote node configuration"
+
+    config SIGGECA_REMOTE_WAKE_INTERVAL_SEC
+        int "Wake / acquire interval (seconds)"
+        default 3600
+        help
+            How often the remote node wakes up to read the Campbell
+            datalogger and transmit over LoRa. Proposal CAV 2026/2027
+            sizes the energy budget around a 5 min-per-hour duty cycle
+            (sec. 6.4) -- keep this in sync with that analysis if changed.
+
+endmenu

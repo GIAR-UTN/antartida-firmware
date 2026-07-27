@@ -1,0 +1,24 @@
+# ESP-IDF build artifacts (per app)
+gateway/build/
+remote/build/
+gateway/managed_components/
+remote/managed_components/
+gateway/dependencies.lock
+remote/dependencies.lock
+
+# Local, machine-specific sdkconfig (keep sdkconfig.defaults* committed, not the generated one)
+gateway/sdkconfig
+remote/sdkconfig
+gateway/sdkconfig.old
+remote/sdkconfig.old
+
+# Secrets: never commit a real sdkconfig.defaults.local with the InfluxDB token etc.
+sdkconfig.defaults.local
+*.local
+
+# Editor/OS cruft
+.DS_Store
+
+# Personal VS Code / ESP-IDF extension config (idf.currentSetup is a local
+# toolchain path, not portable across teammates' machines)
+.vscode/

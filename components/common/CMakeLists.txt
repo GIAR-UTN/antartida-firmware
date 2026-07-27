@@ -1,0 +1,20 @@
+idf_component_register(
+    SRCS
+        "src/uart_console.c"
+        "src/log_mux.c"
+        "src/wdt_sw.c"
+        "src/ota.c"
+        "src/telemetry.c"
+        "src/wdt_hw.c"
+    INCLUDE_DIRS "include"
+    REQUIRES
+        driver
+        esp_driver_uart
+        esp_http_client
+        app_update
+        esp_https_ota
+        mbedtls
+        esp_timer
+        esp_netif
+        nvs_flash
+)

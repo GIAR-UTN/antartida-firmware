@@ -1,0 +1,84 @@
+menu "SiGGECA common configuration"
+
+    choice SIGGECA_SITE
+        prompt "Node site"
+        default SIGGECA_SITE_ISLA_VEGA
+        help
+            Selects which deployment this firmware image is built for. This
+            replaces the old #ifdef MARAMBIO / ISLA_VEGA scattered across
+            multiple headers in the CAV 2025/2026 firmware.
+
+        config SIGGECA_SITE_MARAMBIO
+            bool "Marambio (LAMBI - validation gateway)"
+
+        config SIGGECA_SITE_ISLA_VEGA
+            bool "Isla Vega (Bahia del Diablo - field gateway)"
+    endchoice
+
+    config SIGGECA_WIFI_SSID
+        string "WiFi SSID (Starlink AP, gateway only)"
+        default "GIAR-Starlink" if SIGGECA_SITE_ISLA_VEGA
+        default "GIAR_STARLINK_1" if SIGGECA_SITE_MARAMBIO
+        default ""
+
+    config SIGGECA_WIFI_PASSWORD
+        string "WiFi password (gateway only)"
+        default ""
+
+    config SIGGECA_RELAY_ON_MS
+        int "Antenna ON duration (ms, gateway only)"
+        default 300000
+        help
+            5 minutes, matching the value actually deployed in the CAV
+            2025/2026 firmware (the CAV report documents 15 min/6h instead --
+            confirm the real target duty cycle before changing this).
+
+    config SIGGECA_RELAY_OFF_MS
+        int "Antenna OFF duration (ms, gateway only)"
+        default 3600000
+
+    config SIGGECA_VICTRON_MPPT_MAC
+        string "Victron MPPT BLE MAC address (gateway only)"
+        default "F6:D5:80:07:61:57" if SIGGECA_SITE_ISLA_VEGA
+        default "F1:F4:28:29:57:22" if SIGGECA_SITE_MARAMBIO
+        default ""
+
+    config SIGGECA_VICTRON_DEVICE_KEY
+        string "Victron BLE AES-128 device key, hex (gateway only)"
+        default "c61dc8fc18eee00aa0b8e213d8b6c780" if SIGGECA_SITE_ISLA_VEGA
+        default "b2d1c9a380d0a26381cf7d293333ed28" if SIGGECA_SITE_MARAMBIO
+        default ""
+
+    menu "Telemetry (InfluxDB)"
+        config SIGGECA_INFLUX_URL
+            string "InfluxDB base URL"
+            default "http://influxdb.giar.com.ar:80"
+
+        config SIGGECA_INFLUX_ORG
+            string "InfluxDB org"
+            default "lab"
+
+        config SIGGECA_INFLUX_BUCKET
+            string "InfluxDB bucket"
+            default "esp"
+
+        config SIGGECA_INFLUX_TOKEN
+            string "InfluxDB write token"
+            default ""
+            help
+                Leave this BLANK here and never commit the real token: the
+                CAV 2025/2026 firmware had a live write token hardcoded in
+                plaintext in metrics_task.h, exposed in a public-ish GitHub
+                repo. Provide the real value through a gitignored
+                sdkconfig.defaults.local, or better, provision it at
+                flash/NVS time. That old token should be rotated in
+                InfluxDB regardless of what we do here.
+    endmenu
+
+    menu "OTA"
+        config SIGGECA_OTA_URL
+            string "Firmware upgrade URL"
+            default "https://raw.githubusercontent.com/<org>/<repo>/main/public_images/<site>.bin"
+    endmenu
+
+endmenu
