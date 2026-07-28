@@ -8,10 +8,31 @@ cada una con su propio `inc/`+`src/`).
 
 ## Bloqueante / antes de repartir tareas
 
-- [ ] Verificar compilación real de `gateway` y `remote` con ESP-IDF v6.0.2.
-      El scaffolding se armó sin poder compilar en esta sesión (entorno sin
-      toolchain); falta correr `idf.py build` en ambas apps y corregir lo
-      que aparezca.
+- [x] Verificar compilación real de `gateway` y `remote` con ESP-IDF v6.0.2.
+      Ambas compilan limpio. Apareció y se corrigió una serie de problemas
+      reales por el salto de versión (esta instalación trae ESP-IDF 6.0.2 /
+      mbedtls 4.1.0, más nueva que con la que se escribió el firmware
+      original):
+      - `uart_console.h`/`bme280.h` incluían `driver/gpio.h` de más (solo
+        usaban constantes `GPIO_NUM_x`, que ahora vienen de
+        `hal/gpio_types.h`) — el componente `common` no declaraba
+        `esp_driver_gpio` como dependencia.
+      - `ota.c`: el switch de eventos HTTP no cubría dos valores nuevos del
+        enum (`-Werror=switch`) — se agregó un `default`.
+      - **mbedtls 4 eliminó `mbedtls/aes.h`** (API clásica) — todo pasa por
+        PSA Crypto ahora. Se reescribió `victron_crypto.c` con
+        `psa_cipher_decrypt_setup`/`psa_cipher_set_iv`/`psa_cipher_update`/
+        `psa_cipher_finish` en vez de `mbedtls_aes_crypt_ctr`. **Revisar con
+        cuidado** — es el descifrado real del MPPT Victron, y hay que
+        confirmar en banco que el payload decodificado sigue siendo
+        correcto contra un paquete real.
+      - Faltaba habilitar NimBLE (`CONFIG_BT_ENABLED`/`CONFIG_BT_NIMBLE_ENABLED`,
+        ahora en `gateway/sdkconfig.defaults`) para que `nimble/*.h` exista.
+      - El partition table por defecto (~1MB) no entra el binario del
+        gateway (BLE+wifi+mbedtls+https_ota ≈ 1.26MB) — se agregó
+        `gateway/partitions.csv` (dos slots OTA de 1.5MB) asumiendo **flash
+        de 4MB**; confirmar contra el chip real cuando llegue el HW
+        (`esptool.py flash_id`) y ajustar si no coincide.
 - [ ] **Rotar el token de InfluxDB.** El firmware anterior lo tenía
       hardcodeado en texto plano (`metrics_task.h`), expuesto en GitHub. No
       se copió al nuevo repo (`components/common/Kconfig` lo deja vacío por

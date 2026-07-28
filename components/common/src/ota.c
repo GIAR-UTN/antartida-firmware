@@ -38,6 +38,12 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     case HTTP_EVENT_REDIRECT:
         ESP_LOGD(TAG, "HTTP_EVENT_REDIRECT");
         break;
+    default:
+        // Newer esp_http_client versions add event ids over time (e.g.
+        // HTTP_EVENT_ON_STATUS_CODE, HTTP_EVENT_ON_HEADERS_COMPLETE); this
+        // handler doesn't need to act on them, but -Werror=switch requires
+        // every enum value to be covered.
+        break;
     }
     return ESP_OK;
 }

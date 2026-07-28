@@ -7,8 +7,8 @@
 #define BME280_TASK_H
 
 #include "esp_err.h"
-#include "driver/gpio.h"
 #include "driver/i2c_types.h"
+#include "hal/gpio_types.h" // gpio_num_t / GPIO_NUM_x, without pulling in the full driver/gpio.h API
 
 // I2C pins
 #define BME280_I2C_SDA_GPIO GPIO_NUM_21

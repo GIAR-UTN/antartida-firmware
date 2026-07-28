@@ -2,3 +2,19 @@
 # Site (Marambio/Isla Vega), wifi, timings etc. are still a per-deployment
 # choice -- set those via `idf.py menuconfig` or your own sdkconfig.defaults.local.
 CONFIG_SIGGECA_NODE_ROLE_GATEWAY=y
+
+# BLE stack for the Victron MPPT link (ble_task.c/victron_ble.c use the
+# NimBLE host API directly). Without these two, nimble/*.h isn't even on
+# the include path, regardless of "bt" being in main's REQUIRES.
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+
+# Custom partition table with bigger OTA slots -- see partitions.csv.
+# The built-in "two OTA slots" template is sized for ~1MB apps; this one
+# (BLE+wifi+mbedtls+https_ota) is already over that. Assumes a 4MB flash
+# part (common default on ESP32 devkits) -- confirm against the real board
+# once it's in hand (`esptool.py flash_id`) and adjust both this and
+# partitions.csv if it's smaller.
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y

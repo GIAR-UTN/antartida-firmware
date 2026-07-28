@@ -5,6 +5,12 @@
  * Replica la lógica de `victron-ble`:
  * - Verifica byte de clave.
  * - Usa AES-CTR con IV little-endian.
+ *
+ * NOTA: portado de mbedtls_aes_* (API clasica) a la API PSA Crypto. La
+ * version de mbedtls que trae ESP-IDF 6.0.2 (mbedtls 4.1.0) elimino
+ * mbedtls/aes.h por completo -- toda la criptografia pasa por PSA ahora.
+ * CTR es una operacion simetrica (XOR de keystream), pero se usa el setup
+ * de "decrypt" porque es semanticamente lo que estamos haciendo.
  */
 
 #include "victron_crypto.h"
@@ -14,7 +20,7 @@
 #include <stdlib.h>
 
 #include "esp_log.h"
-#include "mbedtls/aes.h"
+#include "psa/crypto.h"
 
 static const char *TAG_CRYPTO = "VICTRON_CRYPTO";
 
@@ -72,6 +78,12 @@ esp_err_t victron_crypto_init(victron_crypto_ctx_t *ctx, const char *key_hex)
     }
 
     memset(ctx, 0, sizeof(*ctx));
+
+    psa_status_t psa_st = psa_crypto_init();
+    if (psa_st != PSA_SUCCESS) {
+        ESP_LOGE(TAG_CRYPTO, "psa_crypto_init() falló: %d", (int)psa_st);
+        return ESP_FAIL;
+    }
 
     esp_err_t err = hex_to_bytes(key_hex, ctx->key, VICTRON_AES_KEY_SIZE);
     if (err != ESP_OK) {
@@ -169,35 +181,51 @@ esp_err_t victron_crypto_decrypt(
     nonce[1] = (uint8_t)((container.iv >> 8) & 0xFF);
     nonce[2] = (uint8_t)((container.iv >> 16) & 0xFF);
 
-    mbedtls_aes_context aes;
-    mbedtls_aes_init(&aes);
+    psa_key_attributes_t attr = PSA_KEY_ATTRIBUTES_INIT;
+    psa_set_key_usage_flags(&attr, PSA_KEY_USAGE_DECRYPT);
+    psa_set_key_algorithm(&attr, PSA_ALG_CTR);
+    psa_set_key_type(&attr, PSA_KEY_TYPE_AES);
+    psa_set_key_bits(&attr, 128);
 
-    int ret = mbedtls_aes_setkey_enc(&aes, ctx->key, 128);
-    if (ret != 0) {
-        ESP_LOGE(TAG_CRYPTO, "mbedtls_aes_setkey_enc falló: %d", ret);
-        mbedtls_aes_free(&aes);
+    psa_key_id_t key_id = 0;
+    psa_status_t st = psa_import_key(&attr, ctx->key, VICTRON_AES_KEY_SIZE, &key_id);
+    if (st != PSA_SUCCESS) {
+        ESP_LOGE(TAG_CRYPTO, "psa_import_key falló: %d", (int)st);
         free(cipher_buf);
         return ESP_FAIL;
     }
 
-    size_t nc_off = 0;
-    uint8_t stream_block[16] = {0};
+    // CTR es simétrico (XOR de keystream): "decrypt" es la operación
+    // semánticamente correcta acá, aunque produzca el mismo resultado que
+    // "encrypt" bit a bit.
+    psa_cipher_operation_t op = PSA_CIPHER_OPERATION_INIT;
+    size_t out_len = 0;
+    size_t update_len = 0;
+    size_t finish_len = 0;
+    size_t out_capacity = *decrypted_len;
 
-    ret = mbedtls_aes_crypt_ctr(&aes,
-                                padded_len,
-                                &nc_off,
-                                nonce,
-                                stream_block,
-                                cipher_buf,
-                                decrypted);
-
-    mbedtls_aes_free(&aes);
-    free(cipher_buf);
-
-    if (ret != 0) {
-        ESP_LOGE(TAG_CRYPTO, "mbedtls_aes_crypt_ctr falló: %d", ret);
+    st = psa_cipher_decrypt_setup(&op, key_id, PSA_ALG_CTR);
+    if (st == PSA_SUCCESS) {
+        st = psa_cipher_set_iv(&op, nonce, sizeof(nonce));
+    }
+    if (st == PSA_SUCCESS) {
+        st = psa_cipher_update(&op, cipher_buf, padded_len, decrypted, out_capacity, &update_len);
+        out_len += update_len;
+    }
+    if (st == PSA_SUCCESS) {
+        st = psa_cipher_finish(&op, decrypted + out_len, out_capacity - out_len, &finish_len);
+        out_len += finish_len;
+    }
+    if (st != PSA_SUCCESS) {
+        ESP_LOGE(TAG_CRYPTO, "PSA CTR decrypt falló: %d", (int)st);
+        psa_cipher_abort(&op);
+        psa_destroy_key(key_id);
+        free(cipher_buf);
         return ESP_FAIL;
     }
+
+    psa_destroy_key(key_id);
+    free(cipher_buf);
 
     *decrypted_len = cipher_len;
 

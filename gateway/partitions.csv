@@ -1,0 +1,16 @@
+# ESP-IDF partition table for the gateway app.
+#
+# The default "two OTA slots" template ESP-IDF ships is sized for tiny
+# example apps (~1MB per slot). This firmware links BLE/NimBLE + wifi +
+# mbedtls/PSA + esp_https_ota, which alone is already ~1.2MB -- so it needs
+# a custom table with bigger ota_0/ota_1 slots. Sized for a 4MB flash part
+# (the common default on ESP32 devkits); if the real board turns out to
+# have less flash, shrink ota_0/ota_1 accordingly and re-check with
+# `idf.py build` (it fails loudly via app_check_size if it doesn't fit).
+#
+# Name,     Type, SubType, Offset,   Size,      Flags
+nvs,        data, nvs,     0x9000,   0x6000,
+otadata,    data, ota,     0xf000,   0x2000,
+phy_init,   data, phy,     0x11000,  0x1000,
+ota_0,      app,  ota_0,   0x20000,  0x180000,
+ota_1,      app,  ota_1,   ,         0x180000,

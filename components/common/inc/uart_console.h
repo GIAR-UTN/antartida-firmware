@@ -10,7 +10,7 @@
 // --- Generic includes ---
 #include "common.h"
 #include "driver/uart.h"
-#include "driver/gpio.h"
+#include "hal/gpio_types.h" // gpio_num_t / GPIO_NUM_x, without pulling in the full driver/gpio.h API
 
 // --- Generic defines ---
 #define APP_UART_PORT UART_NUM_2
