@@ -26,6 +26,16 @@
     #define SITE_LOCATION_TAG "UNKNOWN"
 #endif
 
+// Gateway and remote node can share the same SIGGECA_SITE (e.g. both at
+// Isla Vega/Bahia del Diablo), so this second tag is what actually tells
+// them apart in InfluxDB/Grafana. Each app pins it via its own
+// sdkconfig.defaults -- see gateway/sdkconfig.defaults, remote/sdkconfig.defaults.
+#if CONFIG_SIGGECA_NODE_ROLE_REMOTE
+    #define NODE_ROLE_TAG "REMOTE"
+#else
+    #define NODE_ROLE_TAG "GATEWAY"
+#endif
+
 // --- WiFi (gateway only) ---
 #define NODE_WIFI_SSID              CONFIG_SIGGECA_WIFI_SSID
 #define NODE_WIFI_PASSWORD          CONFIG_SIGGECA_WIFI_PASSWORD

@@ -18,6 +18,8 @@ esp_err_t system_init(void)
     ESP_RETURN_ON_ERROR(log_mux_init(), TAG, "Log multiplexer failed");
     ESP_RETURN_ON_ERROR(nvs_flash_init(), TAG, "NVS init failed");
     ESP_RETURN_ON_ERROR(wdt_hw_init(), TAG, "wdt_hw_init() failed");
+    ESP_RETURN_ON_ERROR(i2c_master_init(), TAG, "I2C init failed");
+    ESP_RETURN_ON_ERROR(bme280_init(), TAG, "BME280 was not detected on BME280_I2C_ADDR");
     ESP_RETURN_ON_ERROR(campbell_init(), TAG, "campbell_init() failed");
     ESP_RETURN_ON_ERROR(lora_tx_init(), TAG, "lora_tx_init() failed");
     return ESP_OK;

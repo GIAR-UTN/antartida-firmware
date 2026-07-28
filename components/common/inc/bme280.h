@@ -61,8 +61,22 @@ typedef struct {
 } bme280_calib_t;
 
 
-void bme280_task(void *arg);
 esp_err_t i2c_master_init(void);
 esp_err_t bme280_init(void);
+
+/**
+ * @brief Gateway-only: periodic task that reads the BME280 and pushes it
+ * straight to InfluxDB via telemetry_send_bme280(). Do NOT spawn this on
+ * the remote node -- it has no IP network path, so the HTTP POST inside
+ * would just fail/retry forever. Use bme280_read() there instead and pack
+ * the result into the LoRa payload (see remote_fsm.c).
+ */
+void bme280_task(void *arg);
+
+/**
+ * @brief One-shot, network-free read. Safe to call from the remote node's
+ * FSM (or anywhere that doesn't want the InfluxDB side effect).
+ */
+esp_err_t bme280_read(float *temp_c, float *press_hpa, float *hum_pct);
 
 #endif // BME280_TASK_H

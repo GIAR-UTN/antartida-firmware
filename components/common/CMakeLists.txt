@@ -6,10 +6,12 @@ idf_component_register(
         "src/ota.c"
         "src/telemetry.c"
         "src/wdt_hw.c"
-    INCLUDE_DIRS "include"
+        "src/bme280.c"
+    INCLUDE_DIRS "inc"
     REQUIRES
         driver
         esp_driver_uart
+        esp_driver_i2c
         esp_http_client
         app_update
         esp_https_ota

@@ -1,21 +1,20 @@
 set(SRCS
-    "main.c"
-    "wifi.c"
-    "antenna_ctrl.c"
-    "led_task.c"
-    "system_metrics_task.c"
-    "gateway_fsm.c"
-    "lora_rx.c"
-    "bme280.c"
-    "ble/ble_task.c"
-    "ble/victron_ble.c"
-    "ble/victron_crypto.c"
-    "ble/victron_parser.c"
+    "src/main.c"
+    "src/wifi.c"
+    "src/antenna_ctrl.c"
+    "src/led_task.c"
+    "src/system_metrics_task.c"
+    "src/gateway_fsm.c"
+    "src/lora_rx.c"
+    "src/ble/ble_task.c"
+    "src/ble/victron_ble.c"
+    "src/ble/victron_crypto.c"
+    "src/ble/victron_parser.c"
 )
 
 idf_component_register(
     SRCS ${SRCS}
-    INCLUDE_DIRS "." "ble"
+    INCLUDE_DIRS "inc"
     REQUIRES
         common
         esp_http_client
@@ -29,7 +28,6 @@ idf_component_register(
         lwip
         esp_driver_gpio
         esp_driver_uart
-        esp_driver_i2c
         esp_timer
         esp_wifi
         esp_netif

@@ -14,6 +14,7 @@
 #include "uart_console.h"
 #include "log_mux.h"
 #include "wdt_hw.h"
+#include "bme280.h"
 
 #include "remote_fsm.h"
 #include "campbell_driver.h"

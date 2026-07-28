@@ -18,6 +18,7 @@
 #include "uart_console.h"
 #include "log_mux.h"
 #include "wdt_hw.h"
+#include "bme280.h" // shared with the remote node, see components/common
 
 // --- Gateway-specific includes ---
 #include "wifi.h"
@@ -29,7 +30,6 @@
 #include "victron_ble.h"
 #include "victron_crypto.h"
 #include "victron_parser.h"
-#include "bme280.h"
 #include "system_metrics_task.h"
 
 // --- Generic defines ---

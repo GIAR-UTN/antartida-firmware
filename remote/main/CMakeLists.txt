@@ -1,13 +1,13 @@
 set(SRCS
-    "main.c"
-    "remote_fsm.c"
-    "campbell_driver.c"
-    "lora_tx.c"
+    "src/main.c"
+    "src/remote_fsm.c"
+    "src/campbell_driver.c"
+    "src/lora_tx.c"
 )
 
 idf_component_register(
     SRCS ${SRCS}
-    INCLUDE_DIRS "."
+    INCLUDE_DIRS "inc"
     REQUIRES
         common
         nvs_flash

@@ -339,6 +339,11 @@ static esp_err_t bme280_read_values(uint8_t addr, const bme280_calib_t *cal,
 
 
 
+esp_err_t bme280_read(float *temp_c, float *press_hpa, float *hum_pct)
+{
+    return bme280_read_values(BME280_I2C_ADDR, &cal, temp_c, press_hpa, hum_pct);
+}
+
 void bme280_task(void *arg)
 {
     (void)arg;

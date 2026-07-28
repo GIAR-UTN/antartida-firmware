@@ -1,0 +1,2 @@
+# Pins this app's role for InfluxDB tagging (see components/common/inc/node_config.h).
+CONFIG_SIGGECA_NODE_ROLE_REMOTE=y

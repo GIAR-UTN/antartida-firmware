@@ -1,0 +1,4 @@
+# Pins this app's role for InfluxDB tagging (see components/common/inc/node_config.h).
+# Site (Marambio/Isla Vega), wifi, timings etc. are still a per-deployment
+# choice -- set those via `idf.py menuconfig` or your own sdkconfig.defaults.local.
+CONFIG_SIGGECA_NODE_ROLE_GATEWAY=y

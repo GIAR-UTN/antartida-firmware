@@ -115,9 +115,9 @@ esp_err_t telemetry_send_victron_mppt(int charge_state, int charger_error,
     get_mac_str(mac_str);
 
     esp_err_t err = send_line_v(
-        "victron,mac=%s,loc=%s charge_state=%di,charger_error=%di,"
+        "victron,mac=%s,loc=%s,role=%s charge_state=%di,charger_error=%di,"
         "batt_v=%.2f,batt_a=%.2f,yield_wh=%.1f,solar_w=%.1f,load_a=%.2f\n",
-        mac_str, SITE_LOCATION_TAG, charge_state, charger_error,
+        mac_str, SITE_LOCATION_TAG, NODE_ROLE_TAG, charge_state, charger_error,
         batt_v, batt_a, yield_wh, solar_w, load_a);
 
     if (err == ESP_OK) {
@@ -132,8 +132,8 @@ esp_err_t telemetry_send_bme280(float temp_c, float hum_pct, float press_hpa)
     get_mac_str(mac_str);
 
     esp_err_t err = send_line_v(
-        "bme280,mac=%s,loc=%s temp_c=%.2f,hum=%.2f,press_hpa=%.2f\n",
-        mac_str, SITE_LOCATION_TAG, temp_c, hum_pct, press_hpa);
+        "bme280,mac=%s,loc=%s,role=%s temp_c=%.2f,hum=%.2f,press_hpa=%.2f\n",
+        mac_str, SITE_LOCATION_TAG, NODE_ROLE_TAG, temp_c, hum_pct, press_hpa);
 
     if (err == ESP_OK) {
         ESP_LOGI(TAG, "bme280 metrics sent");
@@ -150,8 +150,8 @@ esp_err_t telemetry_send_system(void)
     int64_t uptime_sec = esp_timer_get_time() / 1000000;
 
     esp_err_t err = send_line_v(
-        "system,mac=%s,loc=%s heap_free=%lu,uptime_sec=%lld,sys_error_counter=%lu\n",
-        mac_str, SITE_LOCATION_TAG, (unsigned long)heap_size,
+        "system,mac=%s,loc=%s,role=%s heap_free=%lu,uptime_sec=%lld,sys_error_counter=%lu\n",
+        mac_str, SITE_LOCATION_TAG, NODE_ROLE_TAG, (unsigned long)heap_size,
         (long long)uptime_sec, (unsigned long)s_system_error_counter);
 
     if (err == ESP_OK) {

@@ -15,6 +15,24 @@ menu "SiGGECA common configuration"
             bool "Isla Vega (Bahia del Diablo - field gateway)"
     endchoice
 
+    choice SIGGECA_NODE_ROLE
+        prompt "Node role"
+        default SIGGECA_NODE_ROLE_GATEWAY
+        help
+            Distinguishes the gateway from the remote acquisition node so
+            InfluxDB/Grafana can tell them apart even when both sit at the
+            same SIGGECA_SITE (e.g. gateway + remote node, both at Isla
+            Vega/Bahia del Diablo). Each app pins this via its own
+            sdkconfig.defaults -- you shouldn't need to touch it in
+            menuconfig.
+
+        config SIGGECA_NODE_ROLE_GATEWAY
+            bool "Gateway (Starlink)"
+
+        config SIGGECA_NODE_ROLE_REMOTE
+            bool "Remote acquisition node (Campbell + LoRa)"
+    endchoice
+
     config SIGGECA_WIFI_SSID
         string "WiFi SSID (Starlink AP, gateway only)"
         default "GIAR-Starlink" if SIGGECA_SITE_ISLA_VEGA
