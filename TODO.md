@@ -70,10 +70,21 @@ simulados).
 
 - [ ] Backend PakBus contra el CR1000 prestado por el IAA (referencia:
       `github.com/LionelDarras/PyCampbellCR1000`, protocolo que pasó Arturo
-      Huber)
+      Huber). El CR1000 es autodescriptivo: PakBus permite pedirle al logger
+      la definición de sus tablas/campos en runtime, no hace falta
+      hardcodear el layout.
+- [ ] **Bloqueante para el backend legacy**: pedirle a Arturo Huber / IAA
+      Glaciología el programa Edlog actual del CR10X de Bahía del Diablo (o
+      al menos la documentación de sus "Output Array" — qué Array ID
+      corresponde a qué variable y en qué orden). A diferencia del CR1000,
+      el CR10X **no transmite esa información por protocolo** — el Final
+      Storage es un área plana identificada solo por Array ID, y sin el
+      programa Edlog no hay forma de saber qué campo es cada cosa dentro de
+      un array. Sin este dato el backend legacy queda bloqueado
+      independientemente de qué tan bien esté hecho el resto.
 - [ ] Definir el layout real de `campbell_record_t` (los campos actuales —
-      temperatura, humedad, viento — son placeholder, hay que confirmar
-      contra la tabla real de la estación de Bahía del Diablo)
+      temperatura, humedad, viento — son placeholder) una vez confirmado lo
+      anterior.
 - [ ] Backend legacy para el CR10X real (solo validable en campo — mayor
       riesgo técnico según la propuesta CAV 2026/2027)
 
