@@ -70,7 +70,12 @@ esp_err_t system_init(void)
     ESP_RETURN_ON_ERROR(esp_event_loop_create_default(), TAG, "esp_event_loop_create_default() failed.");
     ESP_RETURN_ON_ERROR(antenna_ctrl_init(), TAG, "antenna_ctrl_init() failed");
     ESP_RETURN_ON_ERROR(wdt_hw_init(), TAG, "wdt_hw_init() failed");
-    ESP_RETURN_ON_ERROR(lora_rx_init(), TAG, "lora_rx_init() failed");
+    // Not fatal on purpose: a missing/broken RFM95 must not take down
+    // Starlink + Victron (or trigger a rollback of an otherwise good image),
+    // which are this node's primary job. The remote node keeps retrying.
+    if (lora_rx_init() != ESP_OK) {
+        ESP_LOGE(TAG, "lora_rx_init() failed: remote node link disabled until next boot");
+    }
     ESP_RETURN_ON_ERROR(i2c_master_init(), TAG, "I2C init failed");
     ESP_RETURN_ON_ERROR(bme280_init(), TAG, "BME280 was not detected on BME280_I2C_ADDR");
     ESP_RETURN_ON_ERROR(led_task_init(), TAG, "led_task_init() failed");

@@ -6,6 +6,8 @@ set(SRCS
     "src/system_metrics_task.c"
     "src/gateway_fsm.c"
     "src/lora_rx.c"
+    "src/ota_lora_gw.c"
+    "src/remote_image.c"
     "src/ble/ble_task.c"
     "src/ble/victron_ble.c"
     "src/ble/victron_crypto.c"
@@ -33,4 +35,7 @@ idf_component_register(
         esp_netif
         esp_event
         protocol_examples_common
+        bootloader_support
+        esp_app_format
+        esp_partition
 )

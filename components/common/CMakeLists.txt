@@ -7,6 +7,7 @@ idf_component_register(
         "src/telemetry.c"
         "src/wdt_hw.c"
         "src/bme280.c"
+        "src/sx1276.c"
     INCLUDE_DIRS "inc"
     REQUIRES
         driver
@@ -19,4 +20,6 @@ idf_component_register(
         esp_timer
         esp_netif
         nvs_flash
+        esp_driver_spi
+        esp_driver_gpio
 )

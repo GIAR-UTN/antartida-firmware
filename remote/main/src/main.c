@@ -1,11 +1,12 @@
 /* SiGGECA remote acquisition node firmware (estacion meteorologica, Bahia
    del Diablo).
 
-   New for CAV 2026/2027. No OTA on this node in this first pass -- it has
-   no internet path of its own (only LoRa to the gateway), so v1 gets
-   reflashed physically during the field install window. Relaying OTA
-   images to this node over LoRa via the gateway is a possible future
-   iteration, not built here (see the plan's open item on this).
+   New for CAV 2026/2027. This node has no internet path of its own (only
+   LoRa to the gateway), so its OTA images are relayed by the gateway over
+   LoRa: the gateway downloads them during its Starlink window and offers
+   them in the ACK to this node's hourly telemetry (see ota_lora_node.h,
+   docs/LORA.md). Rollback is enabled: a new image is only confirmed once it
+   reaches the gateway (remote_fsm.c).
 */
 
 #include "main.h"
@@ -34,5 +35,5 @@ void app_main(void)
         esp_restart();
     }
 
-    xTaskCreate(&remote_fsm_task, "remote_fsm_task", 2 * APP_MINIMAL_STACK_SIZE, NULL, CRITICAL_PRIORITY, NULL);
+    xTaskCreate(&remote_fsm_task, "remote_fsm_task", 3 * APP_MINIMAL_STACK_SIZE, NULL, CRITICAL_PRIORITY, NULL);
 }
