@@ -42,9 +42,10 @@ cada una con su propio `inc/`+`src/`).
       de HW-ANT-001 — `gateway/main/src/antenna_ctrl.c` documenta una
       inconsistencia encontrada en el código del año pasado (nivel 1
       documentado como "OFF" en un lado y usado como "ON" en otro).
-- [ ] Decidir si el nodo remoto necesita OTA propio (relay de la imagen por
-      LoRa a través del gateway) o si se reflashea físicamente en cada
-      instalación. Por ahora v1 asume reflash físico (sin OTA en `remote/`).
+- [x] Decidir si el nodo remoto necesita OTA propio: **sí, relay por LoRa a
+      través del gateway**, disparado por el remoto en el ACK de su
+      telemetría (no rompe el esquema "el remoto siempre inicia"). Ver
+      `docs/LORA.md` (protocolo, puntos de falla y mitigaciones).
 
 ## Fausto — arquitectura común + FSMs
 
@@ -88,18 +89,33 @@ simulados).
 - [ ] Backend legacy para el CR10X real (solo validable en campo — mayor
       riesgo técnico según la propuesta CAV 2026/2027)
 
-## Compañero B — Driver LoRa (RFM95)
+## Aylen — Driver LoRa (RFM95) + OTA por LoRa
 
-Archivos: `gateway/main/inc|src/lora_rx.*` (rol receptor, escucha
-permanente), `remote/main/inc|src/lora_tx.*` (rol iniciador).
+Archivos: `components/common/inc|src/sx1276.*` (driver compartido),
+`components/common/inc/lora_proto.h` (trama), `gateway/main/src/lora_rx.c`,
+`ota_lora_gw.c`, `remote_image.c`, `remote/main/src/lora_tx.c`,
+`ota_lora_node.c`. Detalle en `docs/LORA.md`.
 
-- [ ] Bring-up del módulo RFM95 en devkit (banda 915 MHz)
-- [ ] Definir el formato de paquete real (hoy `remote_fsm.c` envía los
-      bytes crudos de `remote_payload_t` — campbell + bme280 — como
-      placeholder; hace falta un formato versionado con id de nodo)
-- [ ] Una vez estabilizado, evaluar unificar `lora_rx`/`lora_tx` en un solo
-      driver compartido (`components/common/lora_driver.*`) si el código
-      queda muy duplicado entre los dos roles
+- [x] Driver SX1276 (portado de `aylen27s/ota-by-lora`, con correcciones:
+      bit de modo LoRa, base de FIFO TX, tamaño de transferencia SPI,
+      overflows, flags de IRQ, race en RX, pulso de reset)
+- [x] Driver único compartido en `components/common` (pines/SF/BW por Kconfig)
+- [x] Formato de paquete versionado con id de nodo (`lora_proto.h`), ACK de
+      telemetría con reintentos y descarte de duplicados
+- [x] Protocolo OTA por LoRa con validación de bytes recibidos vs. totales,
+      CRC32, retransmisión ante paquete inválido y reinicio de la transmisión
+- [x] Gateway: descarga HTTPS de la imagen del remoto (`SIGGECA_REMOTE_OTA_URL`,
+      mismo bundle de certificados que la OTA propia) a `lora_img`
+- [x] Compila con ESP-IDF 6.0.2 (gateway y remoto)
+- [ ] Bring-up del módulo RFM95 en devkit (banda 915 MHz): enlace entre dos
+      devkits y medir RSSI/SNR
+- [ ] OTA completa en banco: publicar un `.bin` del remoto, ver que el
+      gateway lo baje, lo ofrezca y que el remoto actualice y confirme
+- [ ] Probar el rollback: imagen del remoto con la radio rota a propósito →
+      tiene que volver sola a la anterior a los 3 ciclos
+- [ ] Mover RST a GPIO33 / DIO0 a GPIO32 en el PCB final (GPIO15 es strapping)
+- [ ] Definir con el equipo dónde se publica el `.bin` del remoto (misma
+      convención que `public_images/<site>.bin` del gateway)
 
 ## Compañero C — INA + watchdog HW + control de antena
 

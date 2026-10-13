@@ -11,6 +11,8 @@
 #include "ota.h"
 #include "wdt_hw.h"
 #include "lora_rx.h"
+#include "ota_lora_gw.h"
+#include "remote_image.h"
 
 static const char *TAG = "gateway_fsm";
 
@@ -33,6 +35,24 @@ const char *gateway_state_name(gateway_state_t state)
     }
 }
 
+static void wait_for_lora_ota_session(void)
+{
+    const TickType_t max_wait = pdMS_TO_TICKS(CONFIG_SIGGECA_LORA_OTA_MAX_DEFER_MIN * 60ULL * 1000);
+    const TickType_t t0 = xTaskGetTickCount();
+    if (!ota_lora_gw_busy()) {
+        return;
+    }
+    ESP_LOGI(TAG, "LoRa OTA session to the remote node in progress, postponing gateway OTA");
+    while (ota_lora_gw_busy() && (xTaskGetTickCount() - t0) < max_wait) {
+        wdt_hw_kick();
+        vTaskDelay(pdMS_TO_TICKS(10 * 1000));
+    }
+    if (ota_lora_gw_busy()) {
+        ESP_LOGW(TAG, "LoRa OTA session still running after %d min, continuing anyway",
+                 CONFIG_SIGGECA_LORA_OTA_MAX_DEFER_MIN);
+    }
+}
+
 static gateway_state_t next_state(gateway_state_t state)
 {
     switch (state) {
@@ -46,14 +66,9 @@ static gateway_state_t next_state(gateway_state_t state)
         return GATEWAY_STATE_ANTENNA_ON_WIFI_CONNECT;
 
     case GATEWAY_STATE_ANTENNA_ON_WIFI_CONNECT:
-        // While-loop hook for teammate B: poll incoming remote-node LoRa
-        // packets during the active window and hand them to telemetry.
-        {
-            lora_rx_packet_t pkt;
-            while (lora_rx_poll(&pkt)) {
-                ESP_LOGI(TAG, "LoRa packet from remote node (%u bytes) -- forward to telemetry once campbell payload format is defined", (unsigned)pkt.len);
-            }
-        }
+        // Remote-node readings received over LoRa (the lora_rx task listens
+        // and ACKs all the time; here we only forward what it buffered).
+        lora_rx_flush_to_telemetry();
         vTaskDelay(pdMS_TO_TICKS(NODE_RELAY_ON_MS));
         return GATEWAY_STATE_ACTIVE_WINDOW;
 
@@ -66,6 +81,12 @@ static gateway_state_t next_state(gateway_state_t state)
         return GATEWAY_STATE_ANTENNA_OFF;
 
     case GATEWAY_STATE_ANTENNA_OFF:
+        // OTA_CHECK always ends in esp_restart(), which would cut a LoRa OTA
+        // session to the remote node halfway (they take tens of minutes).
+        // First stop new sessions from starting (offers resume after the
+        // reboot), then let a running one finish, with an upper bound.
+        ota_lora_gw_hold_offers(true);
+        wait_for_lora_ota_session();
         antenna_ctrl_on();
         vTaskDelay(pdMS_TO_TICKS(120 * 1000)); // let Starlink initialize
         return GATEWAY_STATE_OTA_WARMUP;
@@ -82,6 +103,16 @@ static gateway_state_t next_state(gateway_state_t state)
         if (wifi_connect_if_needed() == ESP_FAIL) {
             ESP_LOGE(TAG, "wifi_connect_if_needed() failed before OTA");
             return GATEWAY_STATE_ERROR;
+        }
+        // Readings received during the OFF window: send them now, the reboot
+        // after OTA would otherwise make them wait (in RTC memory) a whole cycle.
+        lora_rx_flush_to_telemetry();
+        // Refresh the remote node's image before our own OTA reboots us.
+        {
+            esp_err_t err = remote_image_fetch();
+            if (err != ESP_OK && err != ESP_ERR_NOT_SUPPORTED) {
+                ESP_LOGW(TAG, "remote_image_fetch() failed (%s)", esp_err_to_name(err));
+            }
         }
         return GATEWAY_STATE_OTA_CHECK;
 

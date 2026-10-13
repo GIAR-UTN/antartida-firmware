@@ -25,6 +25,8 @@
 #include "antenna_ctrl.h"
 #include "gateway_fsm.h"
 #include "lora_rx.h"
+#include "ota_lora_gw.h"
+#include "remote_image.h"
 #include "led_task.h"
 #include "ble_task.h"
 #include "victron_ble.h"

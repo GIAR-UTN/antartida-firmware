@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "esp_http_client.h"
 #include "esp_log.h"
@@ -159,6 +160,53 @@ esp_err_t telemetry_send_system(void)
         ESP_LOGI(TAG, "system metrics sent");
     } else if (s_system_error_counter != UINT32_MAX) {
         s_system_error_counter++;
+    }
+    return err;
+}
+
+// Anything before 2020-01-01 is the stub's/logger's uptime, not a real clock.
+#define TELEMETRY_MIN_VALID_UNIX 1577836800LL
+
+esp_err_t telemetry_send_remote_weather(const lora_msg_telemetry_t *t,
+                                        int16_t rssi_dbm, float snr_db, int32_t age_s)
+{
+    char fw[LORA_FW_VERSION_LEN + 1];
+    memcpy(fw, t->fw_version, LORA_FW_VERSION_LEN);
+    fw[LORA_FW_VERSION_LEN] = '\0';
+    // Line protocol string fields can't contain unescaped quotes/backslashes.
+    for (char *c = fw; *c; c++) {
+        if (*c == '"' || *c == '\\') {
+            *c = '_';
+        }
+    }
+
+    char campbell[128] = "";
+    if (t->flags & LORA_TELEM_FLAG_CAMPBELL_OK) {
+        snprintf(campbell, sizeof(campbell), "air_temp_c=%.2f,rh_pct=%.2f,wind_ms=%.2f,",
+                 t->campbell_air_temp_c, t->campbell_rel_humidity_pct, t->campbell_wind_speed_ms);
+    }
+    char bme[96] = "";
+    if (t->flags & LORA_TELEM_FLAG_BME280_OK) {
+        snprintf(bme, sizeof(bme), "bme_temp_c=%.2f,bme_hum_pct=%.2f,bme_press_hpa=%.2f,",
+                 t->bme280_temp_c, t->bme280_hum_pct, t->bme280_press_hpa);
+    }
+    char ts[24] = "";
+    if ((t->flags & LORA_TELEM_FLAG_CAMPBELL_OK) && t->campbell_timestamp_unix >= TELEMETRY_MIN_VALID_UNIX) {
+        snprintf(ts, sizeof(ts), " %lld", (long long)t->campbell_timestamp_unix);
+    }
+
+    esp_err_t err = send_line_v(
+        "remote_weather,loc=%s,role=REMOTE,node=%u %s%s"
+        "campbell_ok=%s,rssi_dbm=%di,snr_db=%.1f,uptime_s=%lui,rx_age_s=%ldi,"
+        "pending_verify=%s,fw=\"%s\"%s\n",
+        SITE_LOCATION_TAG, (unsigned)t->hdr.src, campbell, bme,
+        (t->flags & LORA_TELEM_FLAG_CAMPBELL_OK) ? "true" : "false",
+        (int)rssi_dbm, snr_db, (unsigned long)t->uptime_s, (long)age_s,
+        (t->flags & LORA_TELEM_FLAG_PENDING_VERIFY) ? "true" : "false",
+        fw, ts);
+
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "remote node %u metrics sent", (unsigned)t->hdr.src);
     }
     return err;
 }

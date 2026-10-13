@@ -18,3 +18,10 @@ CONFIG_BT_NIMBLE_ENABLED=y
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+
+# The SX1276 driver (components/common/src/sx1276.c) brings in the SPI master
+# driver, whose ISR goes to IRAM by default (~9 KB). IRAM was already at ~94%
+# with BLE+wifi, so that alone overflowed it. The driver uses polling
+# transactions from a task, never from flash-disabled context, so the ISR
+# doesn't need to live in IRAM.
+CONFIG_SPI_MASTER_ISR_IN_IRAM=n

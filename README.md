@@ -56,9 +56,12 @@ idf.py build
   es solo para el gateway, que tiene salida a internet. El nodo remoto usa
   `bme280_read()` (lectura puntual, sin red) desde `remote_fsm.c` y empaqueta
   el resultado junto con el dato de Campbell en el paquete LoRa.
+- Enlace LoRa (RFM95/SX1276) entre remoto y gateway con OTA del remoto por
+  LoRa, a partir del trabajo de Aylen (`aylen27s/ota-by-lora`). El driver
+  y la trama viven en `components/common`. Ver `docs/LORA.md`.
 - Stubs pendientes de completar por sus dueños: `ina`/`wdt_hw`/
-  `antenna_ctrl` (INA + watchdog externo + antena), `lora_rx.h`/`lora_tx.h`
-  (RFM95), `campbell_driver.h` (PakBus CR1000 + legacy CR10X).
+  `antenna_ctrl` (INA + watchdog externo + antena), `campbell_driver.h`
+  (PakBus CR1000 + legacy CR10X).
 
 Ver `TODO.md` para el detalle de tareas por persona.
 

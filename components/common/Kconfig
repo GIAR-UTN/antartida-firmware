@@ -97,6 +97,115 @@ menu "SiGGECA common configuration"
         config SIGGECA_OTA_URL
             string "Firmware upgrade URL"
             default "https://raw.githubusercontent.com/<org>/<repo>/main/public_images/<site>.bin"
+
+        config SIGGECA_REMOTE_OTA_URL
+            string "Remote node image URL (gateway only)"
+            depends on SIGGECA_NODE_ROLE_GATEWAY
+            default ""
+            help
+                HTTPS URL of the remote node's .bin. The gateway downloads it
+                during its OTA window (same certificate bundle as its own
+                OTA) into the "lora_img" partition and relays it to the
+                remote node over LoRa the next time that node checks in.
+                Leave empty to disable OTA over LoRa for the remote node.
+
+        config SIGGECA_LORA_OTA_MAX_DEFER_MIN
+            int "Max minutes the gateway postpones its own OTA/reboot for a LoRa session"
+            depends on SIGGECA_NODE_ROLE_GATEWAY
+            default 90
+            help
+                The gateway reboots at the end of every antenna cycle
+                (execute_ota() always calls esp_restart()). A LoRa OTA
+                session to the remote node takes ~45-60 min at SF7/125kHz,
+                so the gateway waits for an in-progress session before
+                starting its own OTA, up to this many minutes.
+
+        config SIGGECA_REMOTE_ROLLBACK_AFTER_FAILS
+            int "Remote: roll back a new image after N cycles without gateway ACK"
+            depends on SIGGECA_NODE_ROLE_REMOTE
+            range 1 48
+            default 3
+            help
+                A freshly OTA'd remote image is only marked valid once it
+                gets a real ACK from the gateway over LoRa. If it fails to
+                do so for this many consecutive cycles, it rolls back to
+                the previous image (the remote has no other way to be
+                reached if a bad image breaks the radio).
+    endmenu
+
+    menu "LoRa (SX1276 / RFM95)"
+        config SIGGECA_LORA_NODE_ID
+            int "Remote node LoRa id (1-254)"
+            depends on SIGGECA_NODE_ROLE_REMOTE
+            range 1 254
+            default 1
+            help
+                Address of this remote node on the LoRa link. The gateway is
+                always id 0. Also used as the "node" tag in InfluxDB.
+
+        config SIGGECA_LORA_FREQUENCY_HZ
+            int "Carrier frequency (Hz)"
+            range 902000000 928000000
+            default 915000000
+            help
+                ISM band allowed in Argentina (ENACOM): 902-928 MHz.
+
+        config SIGGECA_LORA_SF
+            int "Spreading factor (7-12)"
+            range 7 12
+            default 7
+            help
+                Must match on both nodes. Higher SF = more range/robustness
+                but slower: an OTA image of ~300 KB takes ~15 min at SF7 and
+                several hours at SF12. 500 m line-of-sight (proposal sec. 5.4)
+                is well within SF7 range; raise it only if the link proves
+                marginal in the field.
+
+        choice SIGGECA_LORA_BW
+            prompt "Bandwidth"
+            default SIGGECA_LORA_BW_125
+            config SIGGECA_LORA_BW_125
+                bool "125 kHz"
+            config SIGGECA_LORA_BW_250
+                bool "250 kHz"
+            config SIGGECA_LORA_BW_500
+                bool "500 kHz"
+        endchoice
+
+        config SIGGECA_LORA_TX_POWER_DBM
+            int "TX power on PA_BOOST (dBm)"
+            range 2 17
+            default 17
+
+        config SIGGECA_LORA_SYNC_WORD
+            hex "Sync word"
+            default 0x12
+            help
+                Private network sync word (LoRaWAN public is 0x34).
+
+        config SIGGECA_LORA_PIN_MISO
+            int "SPI MISO GPIO"
+            default 19
+        config SIGGECA_LORA_PIN_MOSI
+            int "SPI MOSI GPIO"
+            default 23
+        config SIGGECA_LORA_PIN_SCK
+            int "SPI SCK GPIO"
+            default 18
+        config SIGGECA_LORA_PIN_CS
+            int "SPI CS (NSS) GPIO"
+            default 5
+        config SIGGECA_LORA_PIN_RST
+            int "RESET GPIO"
+            default 4
+            help
+                TODO: move to GPIO33 on the final PCB.
+        config SIGGECA_LORA_PIN_DIO0
+            int "DIO0 (TxDone/RxDone IRQ) GPIO"
+            default 15
+            help
+                TODO: move to GPIO32 on the final PCB -- GPIO15 is a
+                strapping pin.
     endmenu
 
 endmenu

@@ -3,6 +3,7 @@ set(SRCS
     "src/remote_fsm.c"
     "src/campbell_driver.c"
     "src/lora_tx.c"
+    "src/ota_lora_node.c"
 )
 
 idf_component_register(
@@ -15,4 +16,6 @@ idf_component_register(
         esp_driver_gpio
         esp_driver_uart
         esp_timer
+        app_update
+        esp_app_format
 )

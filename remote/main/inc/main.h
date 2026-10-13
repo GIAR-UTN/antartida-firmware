@@ -19,6 +19,7 @@
 #include "remote_fsm.h"
 #include "campbell_driver.h"
 #include "lora_tx.h"
+#include "ota_lora_node.h"
 
 esp_err_t system_init(void);
 

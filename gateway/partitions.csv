@@ -8,9 +8,16 @@
 # have less flash, shrink ota_0/ota_1 accordingly and re-check with
 # `idf.py build` (it fails loudly via app_check_size if it doesn't fit).
 #
+# lora_img holds the remote node's image, downloaded by the gateway during
+# its OTA window and relayed to the remote over LoRa (remote_image.c,
+# ota_lora_gw.c). It takes exactly the rest of the 4MB part; the remote's own
+# OTA slots are the same size (remote/partitions.csv), so a remote image
+# that wouldn't fit here already fails to build there.
+#
 # Name,     Type, SubType, Offset,   Size,      Flags
 nvs,        data, nvs,     0x9000,   0x6000,
 otadata,    data, ota,     0xf000,   0x2000,
 phy_init,   data, phy,     0x11000,  0x1000,
 ota_0,      app,  ota_0,   0x20000,  0x180000,
 ota_1,      app,  ota_1,   ,         0x180000,
+lora_img,   data, 0x40,    0x320000, 0xE0000,

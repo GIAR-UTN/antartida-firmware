@@ -1,0 +1,15 @@
+# ESP-IDF partition table for the remote node app.
+#
+# Two OTA slots so the node can be updated over LoRa (relayed by the
+# gateway) with rollback. Each slot is 0xE0000 (896 KB) on purpose: that's
+# the size of the gateway's "lora_img" partition, so if this app ever grows
+# past what the gateway can store and relay, `idf.py build` fails here
+# (app_check_size) instead of in the field. Grow both together if needed.
+# Assumes 4 MB flash, same as the gateway; only the first ~2 MB are used.
+#
+# Name,     Type, SubType, Offset,   Size,      Flags
+nvs,        data, nvs,     0x9000,   0x6000,
+otadata,    data, ota,     0xf000,   0x2000,
+phy_init,   data, phy,     0x11000,  0x1000,
+ota_0,      app,  ota_0,   0x20000,  0xE0000,
+ota_1,      app,  ota_1,   0x100000, 0xE0000,

@@ -1,21 +1,22 @@
 /**
  * @file lora_rx.h
- * @brief Gateway-side hook into the shared LoRa driver (RX / always-listening role).
+ * @brief Gateway side of the LoRa link (always-listening role).
  *
- * STUB -- owner: teammate in charge of the LoRa driver (RFM95).
+ * Per the CAV 2026/2027 proposal (sec. 6.5), the gateway never sleeps its
+ * LoRa receiver or syncs clocks with the remote node: the remote initiates
+ * every exchange. lora_rx_init() starts a task that owns the radio and:
+ *   - answers each TELEMETRY frame with a TELEMETRY_ACK right away (the
+ *     remote only listens for ~a few hundred ms after its TX), offering the
+ *     remote image stored in lora_img when the node runs another version;
+ *   - stores the reading in a ring buffer in RTC memory, which survives the
+ *     esp_restart() at the end of every gateway cycle (not a power loss);
+ *   - serves OTA sessions when a node sends OTA_REQUEST (ota_lora_gw.h).
  *
- * Per the CAV 2026/2027 proposal (sec. 6.5), the gateway never needs to
- * sleep its LoRa receiver or synchronize clocks with the remote node: the
- * remote initiates every exchange, and the gateway just needs to always be
- * listening and hand off whatever arrives to telemetry. Implement this
- * against a single shared `lora_driver.h`/.c (init/send/on_receive) so the
- * remote node's TX path and this RX path use the exact same wire format --
- * see the plan's "Contratos de driver" section for why it should be one
- * driver instead of two.
+ * gateway_fsm drains the buffer to InfluxDB with lora_rx_flush_to_telemetry()
+ * whenever wifi is up (the active window, and again right before OTA, so
+ * what arrived during the OFF window isn't lost on the reboot that follows).
  *
- * Until the real LoRa driver exists, gateway_fsm calls lora_rx_poll() and
- * gets "no packet available", so the FSM can be developed/tested without
- * hardware.
+ * Wire format: components/common/inc/lora_proto.h.
  */
 
 #ifndef LORA_RX_H
@@ -24,16 +25,20 @@
 #include "esp_err.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
-typedef struct {
-    uint8_t data[64];
-    size_t len;
-} lora_rx_packet_t;
+#define LORA_RX_BUFFER_DEPTH    32      // readings kept while Starlink is off (~32 h at 1/h)
 
 esp_err_t lora_rx_init(void);
 
-/** Non-blocking. Returns true and fills *out if a packet from the remote
- *  node arrived since the last call, false otherwise. */
-bool lora_rx_poll(lora_rx_packet_t *out);
+/** Number of readings waiting to be sent to InfluxDB. */
+size_t lora_rx_pending(void);
+
+/**
+ * Sends buffered readings to InfluxDB, oldest first, until the buffer is
+ * empty or a POST fails (the rest stay buffered for the next window).
+ * Call only with wifi connected. Returns how many were sent.
+ */
+int lora_rx_flush_to_telemetry(void);
 
 #endif // LORA_RX_H
